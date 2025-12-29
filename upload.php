@@ -2,41 +2,88 @@
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-$db = new PDO('sqlite:secure_file_share.db'); // make sure database exists
+// --- DB Connection ---
+$db = new PDO('sqlite:secure_file_share.db'); 
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+// --- Check file upload ---
 if (!isset($_FILES['file'])) {
     die("No file uploaded.");
 }
 
 $file = $_FILES['file'];
 
-// limit size to 5MB
+// --- File size limit (5MB) ---
 $maxSize = 5 * 1024 * 1024;
 if ($file['size'] > $maxSize) {
     die("File too large.");
 }
 
-// allowed types
+// --- Allowed MIME types ---
 $allowed = ['image/jpeg', 'image/png', 'application/pdf', 'text/plain'];
 if (!in_array($file['type'], $allowed)) {
     die("File type not allowed.");
 }
 
-// generate unique token
+// --- Generate unique token and stored filename ---
 $token = bin2hex(random_bytes(16));
-
-// get extension
 $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
 $storedName = $token . "." . $ext;
-
-// move to uploads
 $uploadDir = __DIR__ . "/uploads/";
-if (!move_uploaded_file($file['tmp_name'], $uploadDir . $storedName)) {
-    die("Failed to move uploaded file.");
+
+// --- Metadata stripping for images ---
+if ($file['type'] === 'image/jpeg') {
+    $img = @imagecreatefromjpeg($file['tmp_name']);
+    if (!$img) die("Image processing failed.");
+    
+    $width = imagesx($img);
+    $height = imagesy($img);
+    $clean = imagecreatetruecolor($width, $height);
+    
+    imagecopy($clean, $img, 0, 0, 0, 0, $width, $height);
+    
+    if (!imagejpeg($clean, $uploadDir . $storedName, 90)) {
+        imagedestroy($img);
+        imagedestroy($clean);
+        die("Failed to save clean image.");
+    }
+    
+    imagedestroy($img);
+    imagedestroy($clean);
+}
+elseif ($file['type'] === 'image/png') {
+    $img = @imagecreatefrompng($file['tmp_name']);
+    if (!$img) die("Image processing failed.");
+    
+    $width = imagesx($img);
+    $height = imagesy($img);
+    $clean = imagecreatetruecolor($width, $height);
+    
+    // preserve transparency
+    imagealphablending($clean, false);
+    imagesavealpha($clean, true);
+    $transparent = imagecolorallocatealpha($clean, 0, 0, 0, 127);
+    imagefilledrectangle($clean, 0, 0, $width, $height, $transparent);
+    
+    imagecopy($clean, $img, 0, 0, 0, 0, $width, $height);
+    
+    if (!imagepng($clean, $uploadDir . $storedName)) {
+        imagedestroy($img);
+        imagedestroy($clean);
+        die("Failed to save clean image.");
+    }
+    
+    imagedestroy($img);
+    imagedestroy($clean);
+}
+else {
+    // Non-image files, just move
+    if (!move_uploaded_file($file['tmp_name'], $uploadDir . $storedName)) {
+        die("Failed to move uploaded file.");
+    }
 }
 
-// insert into DB
+// --- Insert into DB ---
 $stmt = $db->prepare(
     "INSERT INTO files (original_filename, stored_filename, token, uploaded_at, expires_at) 
      VALUES (?, ?, ?, ?, ?)"
@@ -46,7 +93,7 @@ $expiresAt = date('Y-m-d H:i:s', strtotime('+1 day'));
 $stmt->execute([$file['name'], $storedName, $token, $createdAt, $expiresAt]);
 
 echo "<!DOCTYPE html>
-<html lang='en'>
+
 <head>
     <meta charset='UTF-8'>
     <title>Upload Successful</title>
@@ -79,5 +126,3 @@ echo "<!DOCTYPE html>
     </footer>
 </body>
 </html>";
-
-
