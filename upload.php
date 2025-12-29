@@ -50,6 +50,7 @@ echo "<!DOCTYPE html>
 <head>
     <meta charset='UTF-8'>
     <title>Upload Successful</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header>
