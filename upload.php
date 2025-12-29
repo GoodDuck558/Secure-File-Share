@@ -97,6 +97,8 @@ echo "<!DOCTYPE html>
 <head>
     <title>Upload Successful</title>
     <link rel=\"stylesheet\" href=\"style.css\" />
+    <script src=\"script.js\"></script>
+
 </head>
 <body>
     <header>
@@ -115,13 +117,14 @@ echo "<!DOCTYPE html>
 
         <section>
             <p>
-                <a href='index.html'>Upload another file</a>
+                <a href='index.php'>Upload another file</a>
             </p>
         </section>
     </main>
 
     <footer>
         <p>&copy; " . date('Y') . " Secure File Share</p>
+        <p style=font-size:0.9em; color:#666;>Version 1.1</p>
     </footer>
 </body>
 </html>";

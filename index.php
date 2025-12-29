@@ -7,15 +7,21 @@ if (!isset($_SESSION['user_id'])) {
 ?>
 
 <!DOCTYPE html>
+<html>
 <head>
     <title>Secure File Share</title>
     <link rel="stylesheet" href="style.css">
-
+    <script src="script.js"></script>
 </head>
 <body>
     <header>
         <h1>Secure File Share</h1>
         <p>Upload and share files privately and securely. Files expire after 24 hours.</p>
+        <!-- Logout link -->
+        <p style="text-align:right;">
+            Logged in as <strong><?php echo htmlspecialchars($_SESSION['username']); ?></strong> | 
+            <a href="logout.php" style="color:#00e0ff;">Logout</a>
+        </p>
     </header>
 
     <main>
@@ -46,6 +52,7 @@ if (!isset($_SESSION['user_id'])) {
                 <li>Upload your file using the form above.</li>
                 <li>You will receive a secure download link immediately.</li>
                 <li>Files are stored temporarily and automatically expire after 24 hours.</li>
+                <li>For now only images will be cleaned from metadata</li>
                 <li>After expiration, the file is deleted and the link becomes invalid.</li>
             </ol>
         </section>
@@ -58,6 +65,8 @@ if (!isset($_SESSION['user_id'])) {
 
     <footer>
         <p>&copy; <?php echo date("Y"); ?> Secure File Share</p>
+            <p style="font-size:0.9em; color:#666;">Version 1.1</p>
+
     </footer>
 </body>
 </html>

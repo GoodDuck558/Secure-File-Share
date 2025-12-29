@@ -85,3 +85,32 @@ footer {
     font-size: 0.9rem;
     opacity: 0.8;
 }
+
+input.invalid {
+    border: 2px solid #c0392b;
+}
+
+input.valid {
+    border: 2px solid #27ae60;
+}
+
+.file-info {
+    margin-top: 8px;
+    font-size: 0.9em;
+    color: #555;
+}
+
+.js-message {
+    margin-bottom: 15px;
+    padding: 10px;
+    background: rgba(0, 198, 255, 0.2);
+    border-left: 4px solid #00c6ff;
+    display: none;
+}
+
+.password-counter {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.85em;
+    opacity: 0.8;
+}

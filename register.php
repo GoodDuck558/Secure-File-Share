@@ -33,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <title>Register - Secure File Share</title>
     <link rel="stylesheet" href="style.css">
+    <script src="script.js"></script>
 </head>
 <body>
     <header>
@@ -65,6 +66,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <footer>
         <p>&copy; <?php echo date("Y"); ?> Secure File Share</p>
+          <p style="font-size:0.9em; color:#666;">Version 1.1</p>
+
     </footer>
 </body>
 </html>
