@@ -1,11 +1,7 @@
 <?php
-session_start();
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
-    exit;
-}
-?>
+require_once 'session.php';
 
+?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -14,59 +10,54 @@ if (!isset($_SESSION['user_id'])) {
     <script src="script.js"></script>
 </head>
 <body>
-    <header>
-        <h1>Secure File Share</h1>
-        <p>Upload and share files privately and securely. Files expire after 24 hours.</p>
-        <!-- Logout link -->
-        <p style="text-align:right;">
-            Logged in as <strong><?php echo htmlspecialchars($_SESSION['username']); ?></strong> | 
-            <a href="logout.php" style="color:#00e0ff;">Logout</a>
-        </p>
-    </header>
+<header>
+    <h1>Secure File Share</h1>
+    <p>Upload and share files privately and securely. Files expire after 24 hours.</p>
+    <p style="text-align:right;">
+        Logged in as <strong><?php echo htmlspecialchars($_SESSION['username']); ?></strong> |
+        <a href="logout.php" style="color:#00e0ff;">Logout</a>
+    </p>
+</header>
 
-    <main>
-        <section>
-            <h2>Upload Your File</h2>
-            <form action="upload.php" method="POST" enctype="multipart/form-data">
-                <div>
-                    <label for="file">Select a file:</label>
-                    <input type="file" name="file" id="file" required>
-                </div>
-                <div>
-                    <button type="submit">Upload</button>
-                </div>
-            </form>
-        </section>
+<main>
+    <section>
+        <h2>Upload Your File</h2>
+        <form action="upload.php" method="POST" enctype="multipart/form-data">
+            <div>
+                <label for="file">Select a file:</label>
+                <input type="file" name="file" id="file" required>
+            </div>
+            <div>
+                <button type="submit">Upload</button>
+            </div>
+        </form>
+    </section>
 
-        <section>
-            <h2>Supported File Types & Limits</h2>
-            <ul>
-                <li>JPEG, PNG, PDF, TXT</li>
-                <li>Maximum size: 5MB per file</li>
-            </ul>
-        </section>
+    <section>
+        <h2>Supported File Types & Limits</h2>
+        <ul>
+            <li>JPEG, PNG, PDF, TXT</li>
+            <li>Maximum size: 5MB per file</li>
+        </ul>
+    </section>
 
-        <section>
-            <h2>How it Works</h2>
-            <ol>
-                <li>Upload your file using the form above.</li>
-                <li>You will receive a secure download link immediately.</li>
-                <li>Files are stored temporarily and automatically expire after 24 hours.</li>
-                <li>For now only images will be cleaned from metadata</li>
-                <li>After expiration, the file is deleted and the link becomes invalid.</li>
-            </ol>
-        </section>
+    <section>
+        <h2>How it Works</h2>
+        <ol>
+            <li>Upload your file using the form above.</li>
+            <li>You will receive a secure download link immediately.</li>
+            <li>Files are stored temporarily and automatically expire after 24 hours.</li>
+            <li>For now only images will be cleaned from metadata</li>
+            <li>After expiration, the file is deleted and the link becomes invalid.</li>
+        </ol>
+    </section>
 
-        <section>
-            <h2>Important</h2>
-            <p>This service is for educational/demo purposes. Treat it as private within your environment.</p>
-        </section>
-    </main>
+    <section> <h2>Important</h2> <p>This service is for educational/demo purposes. Treat it as private within your environment.</p> </section>
+</main>
 
-    <footer>
-        <p>&copy; <?php echo date("Y"); ?> Secure File Share</p>
-            <p style="font-size:0.9em; color:#666;">Version 1.1</p>
-
-    </footer>
+<footer>
+    <p>&copy; <?php echo date("Y"); ?> Secure File Share</p>
+    <p style="font-size:0.9em; color:#666;">Version 1.2</p>
+</footer>
 </body>
 </html>
