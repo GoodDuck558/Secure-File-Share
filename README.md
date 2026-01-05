@@ -49,7 +49,7 @@ Installation
 
 Clone the repository:
 
-git clone https://github.com/GoodDuck558/Secure-File-Upload.git
+git clone https://github.com/GoodDuck558/Secure-File-Share.git
 cd Secure-File-Upload
 
 
