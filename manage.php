@@ -133,6 +133,7 @@ $files = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <button type="submit">Go Back</button>
 </form>
     <p>&copy; <?= date('Y') ?> Secure File Share</p>
+    <p style="font-size:0.9em; color:#666;">Version 2.1</p>
 </footer>
 
 </body>

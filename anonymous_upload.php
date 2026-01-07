@@ -13,6 +13,7 @@ if (empty($_SESSION['csrf'])) {
     <meta charset="UTF-8">
     <title>Anonymous Upload</title>
     <link rel="stylesheet" href="style.css">
+    <script src="crypto.js"></script>
 </head>
 <body>
 
@@ -24,6 +25,7 @@ if (empty($_SESSION['csrf'])) {
 <main>
     <form action="upload.php" method="POST" enctype="multipart/form-data" class="upload-form">
 
+        <!-- CSRF & mode -->
         <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf'], ENT_QUOTES) ?>">
         <input type="hidden" name="mode" value="anonymous">
 
@@ -34,7 +36,7 @@ if (empty($_SESSION['csrf'])) {
 
         <div class="form-group">
             <label for="passphrase">
-                Passphrase (required to download)
+                Passphrase (for encryption)
             </label>
             <input
                 type="password"
@@ -49,9 +51,10 @@ if (empty($_SESSION['csrf'])) {
 
 <footer>
     <form action="landing.php" method="get" style="display:inline;">
-    <button type="submit">Exit</button>
+        <button type="submit">Exit</button>
+    </form>
     <p>&copy; <?= date("Y") ?> Secure File Share</p>
-    <p class="version">Version 2.0</p>
+    <p class="version">Version 2.1</p>
 </footer>
 
 </body>

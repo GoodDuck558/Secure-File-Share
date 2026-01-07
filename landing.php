@@ -39,7 +39,7 @@ require_once 'session.php';
 
     <footer>
         <p>&copy; <?= date("Y") ?> Secure File Share</p>
-        <p class="version">Version 2.0</p>
+        <p class="version">Version 2.1</p>
     </footer>
 </body>
 </html>

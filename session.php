@@ -52,4 +52,4 @@ if (empty($skip_login_check) && empty($_SESSION['user_id'])) {
 }
 
 /* ---------- Rate limiting ---------- */
-$_SESSION['upload_count'] ??= 0;
+$_SESSION['upload_count'] = 0;

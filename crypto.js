@@ -106,62 +106,37 @@ async function decryptFileEnvelope(ciphertext, iv, salt, wrappedKey, passphrase)
 }
 
 /* ===============================
-   Ed25519 Identity Functions
+   Form Handling
 =============================== */
 
-async function generateEd25519KeyPair() {
-    return crypto.subtle.generateKey(
-        { name: "Ed25519" },
-        true,
-        ["sign", "verify"]
-    );
-}
+const fileInput = document.querySelector("#fileInput");
+const passphraseInput = document.querySelector("#passphraseInput");
+const form = document.querySelector("#uploadForm");
 
-async function signMessage(privateKey, message) {
-    const data = encoder.encode(message);
-    const signature = await crypto.subtle.sign(
-        "Ed25519",
-        privateKey,
-        data
-    );
-    return new Uint8Array(signature);
-}
+form.addEventListener("submit", async e => {
+    e.preventDefault();
+    const file = fileInput.files[0];
+    const passphrase = passphraseInput.value;
 
-async function verifySignature(publicKey, message, signature) {
-    const data = encoder.encode(message);
-    return crypto.subtle.verify(
-        "Ed25519",
-        publicKey,
-        signature,
-        data
-    );
-}
+    if (!passphrase) {
+        alert("Please enter a passphrase for encryption!");
+        return;
+    }
 
-async function exportPublicKey(key) {
-    const raw = await crypto.subtle.exportKey("raw", key);
-    return btoa(String.fromCharCode(...new Uint8Array(raw)));
-}
+    const { ciphertext, iv, salt, wrappedKey } = await encryptFileEnvelope(file, passphrase);
 
-async function importPublicKey(base64Key) {
-    const rawKey = Uint8Array.from(atob(base64Key), c => c.charCodeAt(0));
-    return crypto.subtle.importKey(
-        "raw",
-        rawKey,
-        { name: "Ed25519" },
-        true,
-        ["verify"]
-    );
-}
+    const blob = new Blob([ciphertext]);
+    const formData = new FormData();
+    formData.append("file", blob, file.name);
+    formData.append("csrf", document.querySelector("[name='csrf']").value);
+    formData.append("iv", btoa(String.fromCharCode(...iv)));
+    formData.append("salt", btoa(String.fromCharCode(...salt)));
+    formData.append("wrappedKey", btoa(String.fromCharCode(...wrappedKey)));
+    formData.append("mode", document.querySelector("[name='mode']").value);
 
-/* ===============================
-   Global Exports
-=============================== */
-
-window.encryptFileEnvelope = encryptFileEnvelope;
-window.decryptFileEnvelope = decryptFileEnvelope;
-
-window.generateEd25519KeyPair = generateEd25519KeyPair;
-window.signMessage = signMessage;
-window.verifySignature = verifySignature;
-window.exportPublicKey = exportPublicKey;
-window.importPublicKey = importPublicKey;
+    const res = await fetch(form.action, { method: "POST", body: formData });
+    const html = await res.text();
+    document.open();
+    document.write(html);
+    document.close();
+});

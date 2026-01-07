@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <form action="landing.php" method="get" style="display:inline;">
     <button type="submit">Choose mode</button>
 <p>&copy; <?= date("Y") ?> Secure File Share</p>
-<p style="font-size:0.9em; color:#666;">Version 2.0</p>
+<p style="font-size:0.9em; color:#666;">Version 2.1</p>
 </footer>
 </body>
 </html>

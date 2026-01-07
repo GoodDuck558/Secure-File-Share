@@ -5,45 +5,23 @@ $SODIUM_AVAILABLE = extension_loaded('sodium')
 $skip_login_check = true;
 require_once 'session.php';
 
-/*
-|--------------------------------------------------------------------------
-| Database
-|--------------------------------------------------------------------------
-*/
 $db = new PDO('sqlite:secure_file_share.db');
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-/*
-|--------------------------------------------------------------------------
-| Token
-|--------------------------------------------------------------------------
-*/
-if (empty($_GET['token'])) {
-    die("Invalid or missing token.");
-}
+if (empty($_GET['token'])) die("Invalid or missing token.");
 $token = $_GET['token'];
 
 $stmt = $db->prepare("SELECT * FROM files WHERE token = ?");
 $stmt->execute([$token]);
 $file = $stmt->fetch(PDO::FETCH_ASSOC);
-if (!$file) {
-    die("File not found.");
-}
+if (!$file) die("File not found.");
 
-/*
-|--------------------------------------------------------------------------
-| Identity-only check
-|--------------------------------------------------------------------------
-*/
+// Identity-only check
 if ($file['owner_id'] !== null && !isset($_SESSION['user_id'])) {
     die("Login required for this file.");
 }
 
-/*
-|--------------------------------------------------------------------------
-| Expiration
-|--------------------------------------------------------------------------
-*/
+// Expiration
 if (time() > strtotime($file['expires_at'])) {
     $path = __DIR__ . "/uploads/" . $file['stored_filename'];
     if (is_file($path)) unlink($path);
@@ -51,74 +29,31 @@ if (time() > strtotime($file['expires_at'])) {
     die("This link has expired.");
 }
 
-/*
-|--------------------------------------------------------------------------
-| Load encrypted file
-|--------------------------------------------------------------------------
-*/
+// File path
 $filePath = __DIR__ . "/uploads/" . $file['stored_filename'];
-if (!is_file($filePath)) {
-    die("File missing from server.");
-}
+if (!is_file($filePath)) die("File missing from server.");
 
 $encryptedContent = file_get_contents($filePath);
-if ($encryptedContent === false) {
-    die("Failed to read file.");
-}
+if ($encryptedContent === false) die("Failed to read file.");
 
-/*
-|--------------------------------------------------------------------------
-| Master key (must match upload.php)
-|--------------------------------------------------------------------------
-*/
-define('SERVER_MASTER_KEY', hex2bin(
-    '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
-));
+// Status messages
+$successMsg = null;
+$errorMsg = null;
+$downloadReady = false;
+$downloadData = null;
 
-/*
-|--------------------------------------------------------------------------
-| AUTO DOWNLOAD (no passphrase)
-|--------------------------------------------------------------------------
-*/
-if (empty($file['passphrase_hash']) && isset($_GET['auto'])) {
-
-    if ($SODIUM_AVAILABLE) {
-        $nonce_file = base64_decode($file['nonce_file']);
-        $plaintext = sodium_crypto_secretbox_open(
-            $encryptedContent,
-            $nonce_file,
-            SERVER_MASTER_KEY
-        );
-        if ($plaintext === false) die("Decryption failed.");
-    } else {
-        $plaintext = base64_decode($encryptedContent); // FAKE
-    }
-
-    header('Content-Type: application/octet-stream');
-    header('Content-Disposition: attachment; filename="' . basename($file['original_filename']) . '"');
-    header('Content-Length: ' . strlen($plaintext));
-    echo $plaintext;
-    exit;
-}
-
-/*
-|--------------------------------------------------------------------------
-| PASSPHRASE DECRYPT
-|--------------------------------------------------------------------------
-*/
+// Handle POST passphrase decryption
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-    if (empty($_POST['passphrase'])) {
-        die("Passphrase required.");
-    }
-
-    if ($SODIUM_AVAILABLE) {
+    $passphrase = $_POST['passphrase'] ?? '';
+    if (empty($passphrase)) {
+        $errorMsg = "Passphrase required.";
+    } else {
         $wrappingKey = hash_pbkdf2(
             'sha256',
-            $_POST['passphrase'],
-            "24",
+            $passphrase,
+            base64_decode($file['salt']),
             100000,
-            32,
+            SODIUM_CRYPTO_SECRETBOX_KEYBYTES,
             true
         );
 
@@ -128,54 +63,113 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $wrappingKey
         );
 
-        if ($fileKey === false) die("Wrong passphrase.");
+        if ($fileKey === false) $errorMsg = "Wrong passphrase.";
+        else {
+            $plaintext = sodium_crypto_secretbox_open(
+                $encryptedContent,
+                base64_decode($file['nonce_file']),
+                $fileKey
+            );
+            if ($plaintext === false) $errorMsg = "Decryption failed.";
+            else {
+                $downloadReady = true;
+                $downloadData = base64_encode($plaintext);
+                $successMsg = "File decrypted and downloaded";
+            }
+        }
+    }
+}
 
+// Handle auto-download for anonymous files
+if (empty($file['passphrase_hash']) && isset($_GET['auto'])) {
+    if ($SODIUM_AVAILABLE) {
         $plaintext = sodium_crypto_secretbox_open(
             $encryptedContent,
             base64_decode($file['nonce_file']),
-            $fileKey
+            hex2bin('0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef')
         );
-
-        if ($plaintext === false) die("Decryption failed.");
-
+        if ($plaintext === false) $errorMsg = "Decryption failed.";
+        else {
+            $downloadReady = true;
+            $downloadData = base64_encode($plaintext);
+            $successMsg = "File decrypted and downloaded";
+        }
     } else {
-        // FAKE MODE
-        $plaintext = base64_decode($encryptedContent);
+        $downloadReady = true;
+        $downloadData = base64_encode(base64_decode($encryptedContent));
+        $successMsg = "File ready to download";
     }
-
-    header('Content-Type: application/octet-stream');
-    header('Content-Disposition: attachment; filename="' . basename($file['original_filename']) . '"');
-    header('Content-Length: ' . strlen($plaintext));
-    echo $plaintext;
-    exit;
 }
 ?>
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>Download File</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<title>Download File</title>
+<link rel="stylesheet" href="style.css">
+<style>
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        padding: 10px 15px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+    }
+    .alert-error {
+        background-color: #f8d7da;
+        color: #721c24;
+        padding: 10px 15px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+    }
+</style>
 </head>
 <body>
 <header><h1>Download File</h1></header>
 <main>
-<?php if (!empty($file['passphrase_hash'])): ?>
-    <p>Enter passphrase to decrypt:</p>
-    <form method="POST">
-        <input type="password" name="passphrase" required>
-        <button type="submit">Decrypt & Download</button>
-    </form>
-<?php else: ?>
-    <p>No passphrase required.</p>
-    <a href="?token=<?= htmlspecialchars($token) ?>&auto=1">Download File</a>
-<?php endif; ?>
+    <?php if ($successMsg): ?>
+        <div class="alert-success"><?= htmlspecialchars($successMsg) ?></div>
+    <?php endif; ?>
+
+    <?php if ($errorMsg): ?>
+        <div class="alert-error"><?= htmlspecialchars($errorMsg) ?></div>
+    <?php endif; ?>
+
+    <?php if (!empty($file['passphrase_hash'])): ?>
+        <p>Enter passphrase to decrypt:</p>
+        <form method="POST">
+            <input type="password" name="passphrase" required>
+            <button type="submit">Decrypt & Download</button>
+        </form>
+    <?php else: ?>
+        <p>No passphrase required.</p>
+        <a href="?token=<?= htmlspecialchars($token) ?>&auto=1">Download File</a>
+    <?php endif; ?>
 </main>
 <footer>
     <form action="landing.php" method="get" style="display:inline;">
-    <button type="submit">Homepage</button>
-<p>&copy; <?= date("Y") ?> Secure File Share</p>
-<p style="font-size:0.9em; color:#666;">Version 2.0</p>
+        <button type="submit">Homepage</button>
+    </form>
+    <p>&copy; <?= date("Y") ?> Secure File Share</p>
+    <p style="font-size:0.9em; color:#666;">Version 2.0</p>
 </footer>
+
+<?php if ($downloadReady): ?>
+<script>
+    // Trigger download via JS but keep page visible
+    const data = atob("<?= $downloadData ?>");
+    const array = new Uint8Array(data.length);
+    for (let i = 0; i < data.length; i++) array[i] = data.charCodeAt(i);
+
+    const blob = new Blob([array], {type: 'application/octet-stream'});
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = "<?= addslashes($file['original_filename']) ?>";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+</script>
+<?php endif; ?>
+
 </body>
 </html>

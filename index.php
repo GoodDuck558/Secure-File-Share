@@ -15,7 +15,7 @@ $csrf = $_SESSION['csrf'];
 <head>
     <title>Secure File Share - Dashboard</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Keep your crypto.js and script.js if you plan to add encryption later -->
+    <!--For later-->
     <script src="crypto.js"></script>
     <script src="script.js"></script>
 </head>
@@ -63,8 +63,8 @@ $csrf = $_SESSION['csrf'];
         <ol>
             <li>Upload your file using the form above.</li>
             <li>You will receive a secure download link immediately.</li>
-            <li>Files are stored temporarily and automatically expire after 1 minute.</li>
-            <li>Metadata is stripped from supported file types (JPEG, PNG, PDF, TXT) for privacy.</li>
+            <li>Files are stored temporarily and automatically expire after 1 hour.</li>
+            <li>Metadata is yet to be stripped from supported file types (JPEG, PNG, PDF, TXT) for privacy.</li>
             <li>After expiration, the file is deleted and the link becomes invalid.</li>
             <li>Use "Manage Files" to view and manage your identity uploads.</li>
         </ol>
@@ -78,7 +78,7 @@ $csrf = $_SESSION['csrf'];
 
 <footer>
     <p>&copy; <?= date("Y") ?> Secure File Share</p>
-    <p style="font-size:0.9em; color:#666;">Version 2.0</p>
+    <p style="font-size:0.9em; color:#666;">Version 2.1</p>
 </footer>
 </body>
 </html>
