@@ -1,6 +1,6 @@
 This document describes the security goals, assumptions, and limitations of Secure File Share.
 
-(version 2.0)
+(version 2.1)
 ---
 
 ## Security Goals
@@ -36,6 +36,7 @@ This document describes the security goals, assumptions, and limitations of Secu
 ## Current Security Measures
 
 - Files are encrypted before storage
+- Complete End-to-End Encryption
 - Decryption requires a user-supplied passphrase
 - Files automatically expire and are deleted
 - Anonymous uploads are supported
