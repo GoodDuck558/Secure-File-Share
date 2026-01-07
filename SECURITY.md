@@ -1,164 +1,69 @@
-# Security Overview
+This document describes the security goals, assumptions, and limitations of Secure File Share.
 
-This document describes the security model, threat assumptions, and limitations
-of the Secure File Share project (current version: 1.1).
-
-This project is designed with a privacy-first mindset and assumes a hostile
-environment.
-
----
-
-## Threat Model
-
-### Adversaries Considered
-
-The system assumes the following adversaries may exist:
-
-- Malicious users attempting abuse or data exfiltration
-- Automated bots performing brute-force or spam attacks
-- Skilled attackers attempting server compromise
-- Network-level observers
-- Hosting providers and infrastructure operators
-- Government-level adversaries with legal or extralegal powers
-
-No party is inherently trusted.
-
+(version 2.0)
 ---
 
 ## Security Goals
 
-- Minimize trust in the server
-- Minimize stored data and metadata
-- Prevent unauthorized file access
-- Limit impact of server compromise
-- Ensure files expire automatically
-- Avoid long-term identifiers where possible
+- Prevent casual or unauthorized access to shared files
+- Limit the amount of data stored on the server
+- Reduce the impact of server compromise
+- Avoid long-term data retention
+- Support anonymous usage
 
 ---
 
-## What the Server Knows
+## What This Protects Against
 
-Currently, the server knows:
-
-- Encrypted or plaintext uploaded file contents (v1.1)
-- Randomized internal file identifiers
-- File expiration timestamps
-- User account identifiers (if logged in)
-
-The server does **not** attempt to infer file meaning or purpose.
+- Curious third parties
+- Accidental data leaks
+- Unauthorized access by other users
+- Basic automated attacks
+- Server-side data exposure after file expiration
 
 ---
 
-## What the Server Does NOT Know (Design Intent)
+## What This Does NOT Protect Against
 
-- Why a file was uploaded
-- Who the intended recipient is
-- The relationship between sender and receiver
-- Any user-provided encryption keys (future versions)
-
----
-
-## Authentication Model
-
-Version 1.1 uses a traditional username + password login system:
-
-- Passwords are hashed using a strong one-way hashing algorithm
-- Plaintext passwords are never stored
-- Sessions are used to maintain authentication state
-
-Future versions plan to introduce:
-- Key-based authentication
-- Optional anonymous usage modes
-- Passwordless login mechanisms
+- Compromised user devices
+- Weak or reused passphrases
+- Targeted malware or keyloggers
+- Advanced state-level targeted attacks
+- Network-level surveillance without HTTPS or Tor
 
 ---
 
-## File Handling & Expiration
+## Current Security Measures
 
-- Files are stored with randomized filenames
-- Original filenames are not reused
-- Files automatically expire after 24 hours
-- Expired files are deleted and become inaccessible
-
-Expiration is enforced server-side.
-
----
-
-## Metadata Minimization
-
-The system attempts to minimize metadata:
-
-- No long-term access logs are intentionally kept
-- No tracking or analytics are implemented
-- No third-party scripts are used
-
-Some unavoidable metadata may exist at the infrastructure or network level.
+- Files are encrypted before storage
+- Decryption requires a user-supplied passphrase
+- Files automatically expire and are deleted
+- Anonymous uploads are supported
+- Minimal long-term data storage
+- OTP verification for accounts
 
 ---
 
-## Brute Force & Abuse Prevention
+## Known Limitations
 
-Basic protections include:
-
-- Session-based access controls
-- Limited upload size
-- Restricted file types
-
-Rate limiting and further abuse prevention mechanisms are planned.
+- Encryption is currently server-assisted
+- Metadata such as file size and upload timing may be visible
+- IP addresses may be temporarily visible for operational reasons
+- HTTPS is required in production but may not be enabled in development
 
 ---
 
-## HTTPS & Transport Security
+## Planned Improvements
 
-The system is intended to be deployed behind HTTPS.
-
-All authentication and file transfers must occur over encrypted connections.
-Running the system over plain HTTP is considered insecure.
-
----
-
-## Server Compromise Considerations
-
-If the server is compromised or seized:
-
-- Stored files may be accessible until expiration
-- User account data may be exposed
-- Files are designed to expire and delete automatically
-
-Future versions aim to:
-- Encrypt files client-side
-- Minimize or eliminate server-side secrets
-- Reduce the impact of server seizure
+- Client-side encryption using the Web Crypto API
+- Metadata minimization (filename stripping, padding)
+- Tor (.onion) service support
+- Strong key derivation (Argon2 or PBKDF2)
+- Improved secure deletion strategies
+- More explicit abuse prevention mechanisms
 
 ---
 
-## Limitations (Important)
+## Reporting Security Issues
 
-This project does NOT currently protect against:
-
-- A fully compromised host at runtime
-- Malicious hosting providers
-- Global traffic correlation attacks
-- Advanced government-level surveillance
-
-Users should not treat the system as an anonymity guarantee.
-
----
-
-## Responsible Disclosure
-
-Security issues should be reported privately to the project maintainer.
-
-Please include:
-- Clear description of the issue
-- Steps to reproduce
-- Potential impact
-
-Do not publicly disclose vulnerabilities without coordination.
-
----
-
-## Status
-
-This project is under active development.
-Security assumptions and guarantees may change between versions.
+If you discover a security issue, please report it responsibly and do not publicly disclose details without coordination.
