@@ -1,4 +1,4 @@
-# Secure File Share (version 2.0)
+# Secure File Share (version 2.1)
 
 Secure File Share is a privacy-focused web application for sharing files securely and temporarily.
 
@@ -8,7 +8,7 @@ It is designed to minimize data exposure, reduce server trust, and allow users t
 
 ## Features
 
-- 🔐 Encrypted file storage
+- 🔐 Encrypted file storage + End-to-End Encryption
 - ⏱️ Automatic file expiration (default: 1 hour)
 - 🕶️ Anonymous uploads supported
 - 🔑 Passphrase-required file decryption
