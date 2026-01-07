@@ -66,17 +66,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $step = $_POST['step'] ?? '';
 
     // Step 1: Register submission
-    if ($step === 'register') {
+    if (isset($_POST['step']) && $_POST['step'] === 'register') {
         $username = trim($_POST['username']);
         $password = $_POST['password'];
+        $confirm  = $_POST['confirm_password'];
         $email    = trim($_POST['email']);
 
-        if (!$username || !$password || !$email) {
+        if (!$username || !$password || !$email || !$confirm) {
             showMessage("All fields are required.");
         } elseif (!preg_match('/^[a-zA-Z0-9_]{3,30}$/', $username)) {
             showMessage("Username invalid. 3-30 chars, letters, numbers, underscores only.");
         } elseif (strlen($password) < 8) {
             showMessage("Password too short. Minimum 8 characters.");
+        } elseif ($password !== $confirm) {
+            showMessage("Passwords do not match.");
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             showMessage("Invalid email address.");
         } else {
@@ -101,7 +104,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
-
     // Step 2: Verify OTP
     elseif ($step === 'verify') {
         $otp = trim($_POST['otp']);
@@ -166,6 +168,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <form method="POST">
     <input type="hidden" name="step" value="register">
     <div>
+      <label>Email:</label>
+        <input type="email" name="email" required>
+    </div>
+    <div>
         <label>Username:</label>
         <input type="text" name="username" required>
     </div>
@@ -174,9 +180,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="password" name="password" required>
     </div>
     <div>
-        <label>Email:</label>
-        <input type="email" name="email" required>
-    </div>
+     <label>Confirm Password:</label>
+    <input type="password" name="confirm_password" required>
+</div>
+    <div>
+      
     <div>
         <button type="submit">Register & Send OTP</button>
     </div>

@@ -52,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </form>
 <p>No account? <a href="register.php">Register here</a>.</p>
+<p>Forgot password? <a href="forgot_password.php">Click here</a>.</p>
 </main>
 <footer>
     <form action="landing.php" method="get" style="display:inline;">
