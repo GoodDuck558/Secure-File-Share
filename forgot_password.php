@@ -37,12 +37,17 @@ function sendOTP($to, $otp) {
         $mail->isSMTP();
         $mail->Host       = 'smtp.gmail.com';
         $mail->SMTPAuth   = true;
-        $mail->Username   = 'securefileshareweb@gmail.com';
-        $mail->Password   = 'zpvp qznr nkjc eyaz';
+        $config = require 'config.php';
+
+        $mail->Username = $config['SMTP_USER'];
+        $mail->Password = $config['SMTP_PASS'];
+
         $mail->SMTPSecure = 'ssl';
         $mail->Port       = 465;
 
-        $mail->setFrom('securefileshareweb@gmail.com', 'Secure File Share');
+        $config = require 'config.php';
+
+        $mail->setFrom($config['SMTP_FROM'], 'Secure File Share');
         $mail->addAddress($to);
 
         $mail->isHTML(true);

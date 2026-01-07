@@ -40,12 +40,16 @@ function sendOTP($to, $otp) {
         $mail->isSMTP();
         $mail->Host       = 'smtp.gmail.com';
         $mail->SMTPAuth   = true;
-        $mail->Username   = 'securefileshareweb@gmail.com';
-        $mail->Password   = 'zpvp qznr nkjc eyaz'; // your Gmail app password
+
+        $config = require 'config.php';
+
+        $mail->Username = $config['SMTP_USER'];
+        $mail->Password = $config['SMTP_PASS'];
+
         $mail->SMTPSecure = 'ssl';
         $mail->Port       = 465;
 
-        $mail->setFrom('securefileshareweb@gmail.com', 'Secure File Share');
+        $mail->setFrom($config['SMTP_FROM'], 'Secure File Share');
         $mail->addAddress($to);
 
         $mail->isHTML(true);
@@ -106,6 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     // Step 2: Verify OTP
     elseif ($step === 'verify') {
+        
         $otp = trim($_POST['otp']);
         if (!isset($_SESSION['reg_otp'])) {
             showMessage("OTP expired or not generated.");
@@ -130,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Step 3: Resend OTP
     elseif ($step === 'resend') {
         if (!isset($_SESSION['reg_temp'])) {
-            showMessage("No registration in progress. Please start over.");
+        showMessage("No registration in progress. Start over.");
         } else {
             $_SESSION['reg_otp'] = rand(100000, 999999);
             $_SESSION['reg_otp_time'] = time();
@@ -138,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if(sendOTP($email, $_SESSION['reg_otp'])) {
                 showMessage("OTP resent to $email. Check your inbox.", "green");
             } else {
-                showMessage("Failed to resend OTP. Check SMTP settings.");
+                showMessage("Failed to resend OTP.");
             }
         }
     }
