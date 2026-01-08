@@ -151,7 +151,7 @@ if (empty($file['passphrase_hash']) && isset($_GET['auto'])) {
         <button type="submit">Homepage</button>
     </form>
     <p>&copy; <?= date("Y") ?> Secure File Share</p>
-    <p style="font-size:0.9em; color:#666;">Version 2.0</p>
+    <p style="font-size:0.9em; color:#666;">Version 2.1</p>
 </footer>
 
 <?php if ($downloadReady): ?>

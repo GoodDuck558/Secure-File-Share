@@ -1,88 +1,145 @@
 <?php
-$skip_login_check = false;
+$skip_login_check = true;
 require_once 'session.php';
 
-// DB connection
+/*
+|--------------------------------------------------------------------------
+| Database
+|--------------------------------------------------------------------------
+*/
 $db = new PDO('sqlite:secure_file_share.db');
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-// E2EE check
-$SODIUM_AVAILABLE = extension_loaded('sodium')
-    && function_exists('sodium_crypto_secretbox');
-
-// CSRF check
+/*
+|--------------------------------------------------------------------------
+| CSRF
+|--------------------------------------------------------------------------
+*/
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($_POST['csrf']) || $_POST['csrf'] !== $_SESSION['csrf']) {
         die("Invalid CSRF token.");
     }
 }
 
-// rate limiting per session
+/*
+|--------------------------------------------------------------------------
+| Rate limit (soft, user-visible)
+|--------------------------------------------------------------------------
+*/
 if (!isset($_SESSION['uploads'])) $_SESSION['uploads'] = 0;
-
-$rateLimitExceeded = false;
 if ($_SESSION['uploads'] >= 5) {
-    $rateLimitExceeded = true;
+    $rateLimitError = "Upload limit reached for this session. Please wait or refresh.";
 } else {
     $_SESSION['uploads']++;
 }
 
+/*
+|--------------------------------------------------------------------------
+| Abort early if rate limited
+|--------------------------------------------------------------------------
+*/
+if (isset($rateLimitError)) {
+    echo "<p style='color:red; padding:20px;'>$rateLimitError</p>";
+    exit;
+}
 
-// basic vars
-$mode = $_POST['mode'] ?? 'anonymous';
-$owner_id = ($mode === 'identity' && isset($_SESSION['user_id'])) ? $_SESSION['user_id'] : null;
-
+/*
+|--------------------------------------------------------------------------
+| Input
+|--------------------------------------------------------------------------
+*/
 $file = $_FILES['file'] ?? null;
-if (!$file || $file['error'] !== UPLOAD_ERR_OK) die("File upload failed.");
+if (!$file || $file['error'] !== UPLOAD_ERR_OK) {
+    die("File upload failed.");
+}
 
-// generate stored filename & token
+$mode = $_POST['mode'] ?? 'anonymous';
+$owner_id = ($mode === 'identity' && isset($_SESSION['user_id']))
+    ? $_SESSION['user_id']
+    : null;
+
+/*
+|--------------------------------------------------------------------------
+| Metadata
+|--------------------------------------------------------------------------
+*/
 $storedName = bin2hex(random_bytes(16)) . "_" . basename($file['name']);
 $token = bin2hex(random_bytes(16));
 $now = date('c');
 $expires = date('c', time() + 3600);
 
-// passphrase handling
+/*
+|--------------------------------------------------------------------------
+| Passphrase
+|--------------------------------------------------------------------------
+*/
 $passphrase = $_POST['passphrase'] ?? '';
-$passphrase_hash = !empty($passphrase) ? password_hash($passphrase, PASSWORD_DEFAULT) : null;
+$passphrase_hash = !empty($passphrase)
+    ? password_hash($passphrase, PASSWORD_DEFAULT)
+    : null;
 
-// generate file encryption key (32 bytes)
-$fileKey = random_bytes(SODIUM_CRYPTO_SECRETBOX_KEYBYTES);
+/*
+|--------------------------------------------------------------------------
+| Crypto
+|--------------------------------------------------------------------------
+*/
+$SODIUM_AVAILABLE = extension_loaded('sodium')
+    && function_exists('sodium_crypto_secretbox');
 
-// generate nonce for file (24 bytes)
-$nonce_file = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
+$fileKey   = random_bytes(SODIUM_CRYPTO_SECRETBOX_KEYBYTES);
+$nonceFile = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
+$nonceWrap = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
+$salt      = random_bytes(16);
 
-// wrap key if passphrase is given
-if ($SODIUM_AVAILABLE && !empty($passphrase)) {
-    $salt = random_bytes(16); // 16-byte salt
-    $nonce_wrap = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
-    $wrappingKey = hash_pbkdf2('sha256', $passphrase, $salt, 100000, SODIUM_CRYPTO_SECRETBOX_KEYBYTES, true);
-    $wrappedKey = sodium_crypto_secretbox($fileKey, $nonce_wrap, $wrappingKey);
+if (!empty($passphrase)) {
+    $wrappingKey = hash_pbkdf2(
+        'sha256',
+        $passphrase,
+        $salt,
+        100000,
+        SODIUM_CRYPTO_SECRETBOX_KEYBYTES,
+        true
+    );
+    $wrapped_key = sodium_crypto_secretbox($fileKey, $nonceWrap, $wrappingKey);
 } else {
-    $salt = '';
-    $nonce_wrap = '';
-    $wrappedKey = $fileKey; // use raw key for no passphrase
+    $wrapped_key = sodium_crypto_secretbox(
+        $fileKey,
+        $nonceWrap,
+        random_bytes(SODIUM_CRYPTO_SECRETBOX_KEYBYTES)
+    );
 }
 
-// encrypt file
+/*
+|--------------------------------------------------------------------------
+| Encrypt file
+|--------------------------------------------------------------------------
+*/
 $plaintext = file_get_contents($file['tmp_name']);
-if ($SODIUM_AVAILABLE) {
-    $encryptedContent = sodium_crypto_secretbox($plaintext, $nonce_file, $fileKey);
-} else {
-    $encryptedContent = base64_encode($plaintext); // fallback
-}
+$encrypted = $SODIUM_AVAILABLE
+    ? sodium_crypto_secretbox($plaintext, $nonceFile, $fileKey)
+    : base64_encode($plaintext);
 
-// move uploaded file to storage
+/*
+|--------------------------------------------------------------------------
+| Store file
+|--------------------------------------------------------------------------
+*/
 $uploadDir = __DIR__ . '/uploads';
 if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
-file_put_contents($uploadDir . '/' . $storedName, $encryptedContent);
+file_put_contents("$uploadDir/$storedName", $encrypted);
 
-// insert DB record
+/*
+|--------------------------------------------------------------------------
+| DB insert
+|--------------------------------------------------------------------------
+*/
 $stmt = $db->prepare("
 INSERT INTO files
 (original_filename, stored_filename, token, uploaded_at, expires_at,
  owner_id, passphrase_hash, nonce_file, nonce_wrap, iv, salt, wrapped_key)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ");
+
 $stmt->execute([
     $file['name'],
     $storedName,
@@ -91,48 +148,57 @@ $stmt->execute([
     $expires,
     $owner_id,
     $passphrase_hash,
-    base64_encode($nonce_file),
-    base64_encode($nonce_wrap),
-    base64_encode(random_bytes(24)), // future-proof IV
+    base64_encode($nonceFile),
+    base64_encode($nonceWrap),
+    base64_encode(random_bytes(16)),
     base64_encode($salt),
-    base64_encode($wrappedKey)
+    base64_encode($wrapped_key)
 ]);
 
-// return link
-$downloadLink = "download.php?token=" . $token;
+/*
+|--------------------------------------------------------------------------
+| SUCCESS PAGE (NO REDIRECT — EVER)
+|--------------------------------------------------------------------------
+*/
+$downloadLink = "download.php?token=" . htmlspecialchars($token);
 ?>
-
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>Upload Successful</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header><h1>Upload Complete</h1></header>
+
+<header>
+    <h1>Upload Complete</h1>
+</header>
+
 <main>
-    <?php if ($rateLimitExceeded): ?>
-    <div style="padding: 10px; background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; border-radius: 5px; margin-bottom: 20px;">
-        Too many uploads this session. Please wait before uploading more files.
+    <div style="background:#d4edda;color:#155724;padding:12px;border-radius:6px;">
+        File uploaded successfully.
     </div>
-<?php endif; ?>
 
     <p><strong>Download link:</strong></p>
-    <a href="<?= htmlspecialchars($downloadLink) ?>" target="_blank"><?= htmlspecialchars($downloadLink) ?></a>
+    <input type="text" value="<?= $downloadLink ?>" readonly style="width:100%;padding:8px;">
+
+    <p style="margin-top:10px;">
+        <a href="<?= $downloadLink ?>">Go to download page</a>
+    </p>
 
     <?php if (!empty($passphrase)): ?>
         <p><strong>Passphrase:</strong> <?= htmlspecialchars($passphrase) ?></p>
     <?php endif; ?>
-
-    <p><a href="<?= $mode === 'identity' ? 'index.php' : 'anonymous_upload.php' ?>">Upload another</a></p>
 </main>
 
 <footer>
-    <form action="landing.php" method="get" style="display:inline;">
+    <form action="landing.php" method="get">
         <button type="submit">Homepage</button>
     </form>
     <p>&copy; <?= date("Y") ?> Secure File Share</p>
-    <p style="font-size:0.9em; color:#666;">Version 2.1</p>
+    <p class="version">Version 2.1</p>
 </footer>
+
 </body>
 </html>
