@@ -50,7 +50,7 @@ if (empty($_SESSION['csrf'])) {
 </main>
 
 <footer>
-    <form action="landing.php" method="get" style="display:inline;">
+    <form action="index.php" method="get" style="display:inline;">
         <button type="submit">Exit</button>
     </form>
     <p>&copy; <?= date("Y") ?> Secure File Share</p>

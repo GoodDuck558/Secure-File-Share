@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         session_regenerate_id(true);
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['username'] = $user['username'];
-        header('Location: index.php');
+        header('Location: identity.php');
         exit;
     } else {
         $error = "Invalid username or password.";
@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <p>Forgot password? <a href="forgot_password.php">Click here</a>.</p>
 </main>
 <footer>
-    <form action="landing.php" method="get" style="display:inline;">
+    <form action="index.php" method="get" style="display:inline;">
     <button type="submit">Choose mode</button>
 <p>&copy; <?= date("Y") ?> Secure File Share</p>
 <p style="font-size:0.9em; color:#666;">Version 2.1</p>

@@ -193,7 +193,7 @@ $downloadLink = "download.php?token=" . htmlspecialchars($token);
 </main>
 
 <footer>
-    <form action="landing.php" method="get">
+    <form action="index.php" method="get">
         <button type="submit">Homepage</button>
     </form>
     <p>&copy; <?= date("Y") ?> Secure File Share</p>

@@ -147,7 +147,7 @@ if (empty($file['passphrase_hash']) && isset($_GET['auto'])) {
     <?php endif; ?>
 </main>
 <footer>
-    <form action="landing.php" method="get" style="display:inline;">
+    <form action="index.php" method="get" style="display:inline;">
         <button type="submit">Homepage</button>
     </form>
     <p>&copy; <?= date("Y") ?> Secure File Share</p>

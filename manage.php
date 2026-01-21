@@ -129,7 +129,7 @@ $files = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </main>
 
 <footer>
-    <form action="index.php" method="get" style="display:inline;">
+    <form action="identity.php" method="get" style="display:inline;">
     <button type="submit">Go Back</button>
 </form>
     <p>&copy; <?= date('Y') ?> Secure File Share</p>
